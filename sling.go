@@ -3,6 +3,7 @@ package sling
 import (
 	"encoding/base64"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 
@@ -392,6 +393,26 @@ func (s *Sling) Do(req *http.Request, successV, failureV interface{}) (*http.Res
 		err = decodeResponse(resp, s.responseDecoder, successV, failureV)
 	}
 	return resp, err
+}
+
+// DoRaw sends an HTTP request and returns the response body string.
+func (s *Sling) DoRaw(req *http.Request) (*http.Response, string, error) {
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return resp, "", err
+	}
+	// when err is nil, resp contains a non-nil resp.Body which must be closed
+	defer resp.Body.Close()
+
+	// Don't try to decode on 204s
+	if resp.StatusCode == 204 {
+		return resp, "", nil
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	bodyString := string(body)
+
+	return resp, bodyString, err
 }
 
 // decodeResponse decodes response Body into the value pointed to by successV
