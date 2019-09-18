@@ -396,7 +396,7 @@ func (s *Sling) Do(req *http.Request, successV, failureV interface{}) (*http.Res
 }
 
 // DoRaw sends an HTTP request and returns the response body string.
-func (s *Sling) DoRaw(req *http.Request) (*http.Response, string, error) {
+func (s *Sling) DoRaw(req *http.Request, failureV interface{}) (*http.Response, string, error) {
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
 		return resp, "", err
@@ -407,6 +407,11 @@ func (s *Sling) DoRaw(req *http.Request) (*http.Response, string, error) {
 	// Don't try to decode on 204s
 	if resp.StatusCode == 204 {
 		return resp, "", nil
+	}
+	
+	// Decode from json
+	if failureV != nil {
+		_ = decodeResponse(resp, s.responseDecoder, nil, failureV)
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
